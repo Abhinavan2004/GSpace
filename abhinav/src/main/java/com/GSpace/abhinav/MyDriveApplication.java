@@ -4,10 +4,8 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class AbhinavApplication {
-
+public class MyDriveApplication {
 	public static void main(String[] args) {
-		SpringApplication.run(AbhinavApplication.class, args);
+		SpringApplication.run(MyDriveApplication.class, args);
 	}
-
 }
