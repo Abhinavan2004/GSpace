@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>MyDrive — Login</title>
+    <link rel="stylesheet" href="/style.css"/>
+</head>
+<body class="auth-page">
+<div class="auth-box">
+    <h1>🗄️ MyDrive</h1>
+    <p>Your personal cloud</p>
+    <input type="text" id="username" placeholder="Username" autocomplete="username"/>
+    <input type="password" id="password" placeholder="Password" autocomplete="current-password"/>
+    <button onclick="login()">Login</button>
+    <p id="error" class="error"></p>
+</div>
+<script>
+    // If already logged in, go to dashboard
+    if (localStorage.getItem('token')) window.location.href = '/dashboard.html';
+
+    async function login() {
+        const username = document.getElementById('username').value.trim();
+        const password = document.getElementById('password').value;
+        const errorEl = document.getElementById('error');
+        errorEl.textContent = '';
+
+        if (!username || !password) {
+            errorEl.textContent = 'Please fill in both fields.';
+            return;
+        }
+
+        try {
+            const res = await fetch('/api/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            });
+
+            if (!res.ok) {
+                errorEl.textContent = 'Invalid username or password.';
+                return;
+            }
+
+            const data = await res.json();
+            localStorage.setItem('token', data.token);
+            localStorage.setItem('username', data.username);
+            window.location.href = '/dashboard.html';
+        } catch (e) {
+            errorEl.textContent = 'Server error. Try again.';
+        }
+    }
+</script>
+</body>
+</html>

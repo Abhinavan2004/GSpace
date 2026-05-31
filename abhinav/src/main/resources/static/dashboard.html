@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>MyDrive — Dashboard</title>
+    <link rel="stylesheet" href="/style.css"/>
+</head>
+<body>
+
+<header>
+    <h1>🗄️ MyDrive</h1>
+    <div class="header-right">
+        <span id="username-display"></span>
+        <button class="btn-logout" onclick="logout()">Logout</button>
+    </div>
+</header>
+
+<main>
+    <!-- Upload Section -->
+    <section class="upload-section">
+        <div class="drop-zone" id="dropZone">
+            <p>📂 Drag & Drop files here</p>
+            <p>or</p>
+            <label class="btn-primary">
+                Browse Files
+                <input type="file" id="fileInput" multiple hidden
+                       accept=".jpg,.jpeg,.png,.pdf,.mp4,.mov,.avi"/>
+            </label>
+        </div>
+        <div id="uploadStatus"></div>
+    </section>
+
+    <!-- File List -->
+    <section class="files-section">
+        <h2>Your Files</h2>
+        <div class="toolbar">
+            <input type="text" id="searchInput" placeholder="🔍 Search files..." oninput="filterFiles()"/>
+        </div>
+        <div id="fileGrid" class="file-grid">
+            <p>Loading...</p>
+        </div>
+    </section>
+</main>
+
+<script src="/app.js"></script>
+</body>
+</html>
