@@ -1,4 +1,4 @@
-package com.mydrive.config;
+package com.GSpace.abhinav.config;
 
 import com.GSpace.abhinav.security.JwtFilter;
 import com.GSpace.abhinav.security.UserDetailsServiceImpl;
