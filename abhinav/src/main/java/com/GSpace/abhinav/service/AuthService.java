@@ -28,6 +28,23 @@ public class AuthService {
         return new LoginResponse(token, request.getUsername());
     }
 
+    public void register(LoginRequest request) {
+        if (request.getUsername() == null || request.getUsername().trim().isEmpty()) {
+            throw new IllegalArgumentException("Username cannot be empty");
+        }
+        if (request.getPassword() == null || request.getPassword().length() < 4) {
+            throw new IllegalArgumentException("Password must be at least 4 characters");
+        }
+        if (userRepository.existsByUsername(request.getUsername().trim())) {
+            throw new IllegalArgumentException("Username is already taken");
+        }
+        User user = User.builder()
+                .username(request.getUsername().trim())
+                .password(passwordEncoder.encode(request.getPassword()))
+                .build();
+        userRepository.save(user);
+    }
+
     // Call this once to create your admin user
     public void createUserIfNotExists(String username, String password) {
         if (!userRepository.existsByUsername(username)) {

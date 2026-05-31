@@ -18,4 +18,14 @@ public class AuthController {
     public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest request) {
         return ResponseEntity.ok(authService.login(request));
     }
+
+    @PostMapping("/register")
+    public ResponseEntity<?> register(@RequestBody LoginRequest request) {
+        try {
+            authService.register(request);
+            return ResponseEntity.ok(java.util.Map.of("message", "User registered successfully"));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(java.util.Map.of("error", e.getMessage()));
+        }
+    }
 }
