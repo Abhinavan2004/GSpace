@@ -3,96 +3,57 @@
 <head>
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>GSpace — Dashboard</title>
-    <!-- Google Fonts for premium typography -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <title>MyDrive — Dashboard</title>
     <link rel="stylesheet" href="/style.css"/>
 </head>
-<body class="dashboard-page">
+<body>
 
-<!-- Decorative glowing canvas elements -->
-<div class="glow-bg-circle glow-1"></div>
-<div class="glow-bg-circle glow-2"></div>
-
-<!-- Sleek Glassmorphic Floating Header Navbar -->
-<header class="main-navbar">
-    <div class="navbar-container">
-        <div class="navbar-left">
-            <span class="nav-logo">🗄️</span>
-            <span class="nav-brand">GSpace</span>
-        </div>
-        <div class="navbar-right">
-            <div class="user-avatar-badge">
-                <span class="avatar-letter" id="user-avatar">U</span>
-                <span id="username-display" class="nav-username"></span>
-            </div>
-            <button class="btn-logout" onclick="logout()">
-                <span>Logout</span>
-                <span class="logout-icon">🚪</span>
-            </button>
-        </div>
+<header>
+    <h1>🗄️ MyDrive</h1>
+    <div class="header-right">
+        <span id="username-display"></span>
+        <button class="btn-logout" onclick="logout()">Logout</button>
     </div>
 </header>
 
-<main class="dashboard-container">
-    <!-- Storage & Upload Grid -->
-    <div class="dashboard-grid">
-        <!-- Quick stats card -->
-        <section class="stats-card glass-panel">
-            <div class="stats-header">
-                <h3>Cloud Storage</h3>
-                <span class="stats-badge">Active</span>
-            </div>
-            <div class="storage-graphic">
-                <div class="circle-progress">
-                    <span>☁️</span>
-                </div>
-            </div>
-            <div class="stats-details">
-                <p class="stats-title">Secure Encrypted Space</p>
-                <p class="stats-subtitle">All your uploads are securely stored using SQLite backend infrastructure.</p>
-            </div>
-        </section>
-
-        <!-- Drop & Upload Section -->
-        <section class="upload-panel glass-panel">
-            <div class="drop-zone" id="dropZone">
-                <div class="upload-icon-container">
-                    <span class="cloud-icon">📤</span>
-                </div>
-                <h3>Drag & Drop your files here</h3>
-                <p>Supports Images, Videos, PDFs and Documents</p>
-                <span class="divider">or</span>
-                <label class="btn-browse-primary">
-                    Browse Files
-                    <input type="file" id="fileInput" multiple hidden
-                           accept=".jpg,.jpeg,.png,.pdf,.mp4,.mov,.avi"/>
-                </label>
-            </div>
-            <div id="uploadStatus" class="upload-status-bar"></div>
-        </section>
-    </div>
-
-    <!-- File Explorer Section -->
-    <section class="files-panel glass-panel">
-        <div class="files-panel-header">
-            <h2>Your Secure Files</h2>
-            <div class="search-box">
-                <span class="search-icon">🔍</span>
-                <input type="text" id="searchInput" placeholder="Search by filename..." oninput="filterFiles()"/>
-            </div>
+<main>
+    <section class="upload-section">
+        <div class="drop-zone" id="dropZone">
+            <p>📂 Drag & Drop files here</p>
+            <p>or</p>
+            <label class="btn-primary">
+                Browse Files
+                <input type="file" id="fileInput" multiple hidden
+                       accept=".jpg,.jpeg,.png,.pdf,.mp4,.mov,.avi,.mkv,.webm"/>
+            </label>
         </div>
-        
+        <div id="uploadStatus"></div>
+    </section>
+
+    <section class="files-section">
+        <h2>Your Files</h2>
+        <div class="toolbar">
+            <input type="text" id="searchInput" placeholder="🔍 Search files..." oninput="filterFiles()"/>
+        </div>
         <div id="fileGrid" class="file-grid">
-            <div class="file-grid-loading">
-                <div class="spinner"></div>
-                <p>Loading files from server...</p>
-            </div>
+            <p>Loading...</p>
         </div>
     </section>
 </main>
+
+<!-- Preview Modal -->
+<div id="previewModal" class="modal-overlay" onclick="closePreview(event)">
+    <div class="modal-box">
+        <div class="modal-header">
+            <span id="previewTitle" class="modal-title"></span>
+            <button class="modal-close" onclick="closeModal()">✕</button>
+        </div>
+        <div class="modal-body" id="previewBody"></div>
+        <div class="modal-footer">
+            <button class="btn-download-modal" id="modalDownloadBtn">⬇ Download</button>
+        </div>
+    </div>
+</div>
 
 <script src="/app.js"></script>
 </body>

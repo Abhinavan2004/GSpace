@@ -3,201 +3,56 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>GSpace — Secure Cloud Storage</title>
-    <!-- Google Fonts for premium typography -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <title>MyDrive — Login</title>
     <link rel="stylesheet" href="/style.css"/>
 </head>
 <body class="auth-page">
-
-<!-- Modern background decorative glowing circles -->
-<div class="glow-bg-circle glow-1"></div>
-<div class="glow-bg-circle glow-2"></div>
-
-<div class="auth-container">
-    <div class="brand-header animate-fade-in">
-        <span class="brand-logo">🗄️</span>
-        <span class="brand-name">GSpace</span>
-    </div>
-    
-    <div class="auth-card animate-scale-up">
-        <!-- Switch Tab Header -->
-        <div class="auth-tabs">
-            <div class="active-tab-indicator" id="tabIndicator"></div>
-            <button class="auth-tab active" id="tab-login" onclick="switchMode('login')">Sign In</button>
-            <button class="auth-tab" id="tab-signup" onclick="switchMode('signup')">Sign Up</button>
-        </div>
-        
-        <div class="auth-form-content">
-            <h2 id="form-title">Welcome Back</h2>
-            <p id="form-subtitle">Enter your credentials to access your cloud storage</p>
-            
-            <div class="input-wrapper">
-                <div class="input-field">
-                    <span class="input-icon">👤</span>
-                    <input type="text" id="username" placeholder="Username" autocomplete="username"/>
-                </div>
-                <div class="input-field">
-                    <span class="input-icon">🔑</span>
-                    <input type="password" id="password" placeholder="Password" autocomplete="current-password"/>
-                </div>
-            </div>
-            
-            <button class="btn-auth-submit" id="submit-btn" onclick="handleSubmit()">
-                <span id="btn-text">Sign In</span>
-                <span class="btn-arrow">→</span>
-            </button>
-            
-            <div id="status-message" class="status-msg"></div>
-        </div>
-    </div>
-    
-    <p class="auth-footer">Protected by industry-standard encryption</p>
+<div class="auth-box">
+    <h1>🗄️ MyDrive</h1>
+    <p>Your personal cloud</p>
+    <input type="text" id="username" placeholder="Username" autocomplete="username"/>
+    <input type="password" id="password" placeholder="Password" autocomplete="current-password"/>
+    <button onclick="login()">Login</button>
+    <p id="error" class="error"></p>
 </div>
-
 <script>
-    // Redirect to dashboard if token exists
-    if (localStorage.getItem('token')) {
-        window.location.href = '/dashboard.html';
-    }
+    if (localStorage.getItem('token')) window.location.href = '/dashboard.html';
 
-    let currentMode = 'login';
-
-    function switchMode(mode) {
-        if (currentMode === mode) return;
-        currentMode = mode;
-        
-        const tabLogin = document.getElementById('tab-login');
-        const tabSignup = document.getElementById('tab-signup');
-        const tabIndicator = document.getElementById('tabIndicator');
-        const formTitle = document.getElementById('form-title');
-        const formSubtitle = document.getElementById('form-subtitle');
-        const btnText = document.getElementById('btn-text');
-        const statusMessage = document.getElementById('status-message');
-        
-        statusMessage.className = 'status-msg';
-        statusMessage.textContent = '';
-        
-        if (mode === 'login') {
-            tabLogin.classList.add('active');
-            tabSignup.classList.remove('active');
-            tabIndicator.style.left = '4px';
-            
-            formTitle.textContent = 'Welcome Back';
-            formSubtitle.textContent = 'Enter your credentials to access your cloud storage';
-            btnText.textContent = 'Sign In';
-        } else {
-            tabLogin.classList.remove('active');
-            tabSignup.classList.add('active');
-            tabIndicator.style.left = 'calc(50% - 4px)';
-            
-            formTitle.textContent = 'Create Account';
-            formSubtitle.textContent = 'Join GSpace to securely store, share, and access your files';
-            btnText.textContent = 'Register Now';
-        }
-    }
-
-    async function handleSubmit() {
+    async function login() {
         const username = document.getElementById('username').value.trim();
         const password = document.getElementById('password').value;
-        const statusEl = document.getElementById('status-message');
-        
-        statusEl.className = 'status-msg';
-        statusEl.textContent = '';
+        const errorEl = document.getElementById('error');
+        errorEl.textContent = '';
 
         if (!username || !password) {
-            statusEl.textContent = '⚠️ Please fill in all fields.';
-            statusEl.classList.add('error');
+            errorEl.textContent = 'Please fill in both fields.';
             return;
         }
 
-        if (password.length < 4) {
-            statusEl.textContent = '⚠️ Password must be at least 4 characters.';
-            statusEl.classList.add('error');
-            return;
-        }
+        try {
+            const res = await fetch('/api/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            });
 
-        const submitBtn = document.getElementById('submit-btn');
-        submitBtn.disabled = true;
-        submitBtn.style.opacity = '0.7';
-
-        if (currentMode === 'login') {
-            try {
-                const res = await fetch('/api/auth/login', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username, password })
-                });
-
-                if (!res.ok) {
-                    statusEl.textContent = '❌ Invalid username or password.';
-                    statusEl.classList.add('error');
-                    submitBtn.disabled = false;
-                    submitBtn.style.opacity = '1';
-                    return;
-                }
-
-                const data = await res.json();
-                localStorage.setItem('token', data.token);
-                localStorage.setItem('username', data.username);
-                
-                statusEl.textContent = '⚡ Authorized! Redirecting...';
-                statusEl.classList.add('success');
-                
-                setTimeout(() => {
-                    window.location.href = '/dashboard.html';
-                }, 800);
-            } catch (e) {
-                statusEl.textContent = '❌ Server connection failure. Try again.';
-                statusEl.classList.add('error');
-                submitBtn.disabled = false;
-                submitBtn.style.opacity = '1';
+            if (!res.ok) {
+                errorEl.textContent = 'Invalid username or password.';
+                return;
             }
-        } else {
-            // Sign up
-            try {
-                const res = await fetch('/api/auth/register', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username, password })
-                });
 
-                const data = await res.json();
-                
-                if (!res.ok) {
-                    statusEl.textContent = `❌ ${data.error || 'Failed to register.'}`;
-                    statusEl.classList.add('error');
-                    submitBtn.disabled = false;
-                    submitBtn.style.opacity = '1';
-                    return;
-                }
-
-                statusEl.textContent = '✨ Registration successful! Switching to Sign In...';
-                statusEl.classList.add('success');
-                
-                // Clear fields
-                document.getElementById('username').value = '';
-                document.getElementById('password').value = '';
-                
-                setTimeout(() => {
-                    switchMode('login');
-                    submitBtn.disabled = false;
-                    submitBtn.style.opacity = '1';
-                }, 1800);
-            } catch (e) {
-                statusEl.textContent = '❌ Server connection failure. Try again.';
-                statusEl.classList.add('error');
-                submitBtn.disabled = false;
-                submitBtn.style.opacity = '1';
-            }
+            const data = await res.json();
+            localStorage.setItem('token', data.token);
+            localStorage.setItem('username', data.username);
+            window.location.href = '/dashboard.html';
+        } catch (e) {
+            errorEl.textContent = 'Server error. Try again.';
         }
     }
-    
-    // Support hitting Enter to submit
-    document.getElementById('password').addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') handleSubmit();
+
+    // Allow pressing Enter to login
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Enter') login();
     });
 </script>
 </body>
