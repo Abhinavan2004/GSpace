@@ -9,7 +9,6 @@
     --text: #e0e0e0;
     --muted: #888;
     --danger: #e74c3c;
-    --success: #2ecc71;
     --radius: 12px;
 }
 
@@ -20,7 +19,7 @@ body {
     min-height: 100vh;
 }
 
-/* ── AUTH PAGE ── */
+/* AUTH PAGE */
 .auth-page {
     display: flex;
     align-items: center;
@@ -69,7 +68,7 @@ body {
 .auth-box button:hover { opacity: 0.85; }
 .error { color: var(--danger); margin-top: 0.75rem; font-size: 0.9rem; }
 
-/* ── HEADER ── */
+/* HEADER */
 header {
     display: flex;
     justify-content: space-between;
@@ -77,9 +76,6 @@ header {
     padding: 1rem 2rem;
     background: var(--surface);
     border-bottom: 1px solid #2a2d3e;
-    position: sticky;
-    top: 0;
-    z-index: 100;
 }
 
 header h1 { font-size: 1.4rem; }
@@ -97,10 +93,10 @@ header h1 { font-size: 1.4rem; }
 
 .btn-logout:hover { background: var(--danger); color: white; }
 
-/* ── MAIN ── */
+/* MAIN */
 main { padding: 2rem; max-width: 1100px; margin: 0 auto; }
 
-/* ── UPLOAD ── */
+/* UPLOAD */
 .upload-section { margin-bottom: 2.5rem; }
 
 .drop-zone {
@@ -129,9 +125,10 @@ main { padding: 2rem; max-width: 1100px; margin: 0 auto; }
 }
 
 .btn-primary:hover { opacity: 0.85; }
+
 #uploadStatus { margin-top: 1rem; font-size: 0.9rem; color: var(--accent2); }
 
-/* ── FILES ── */
+/* FILES */
 .files-section h2 { margin-bottom: 1rem; }
 
 .toolbar { margin-bottom: 1.25rem; }
@@ -152,99 +149,50 @@ main { padding: 2rem; max-width: 1100px; margin: 0 auto; }
 
 .file-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
     gap: 1.25rem;
 }
 
-/* ── FILE CARD ── */
+/* ORIGINAL FILE CARD — exactly as before */
 .file-card {
     background: var(--card);
     border-radius: var(--radius);
-    overflow: hidden;
+    padding: 1.25rem;
     display: flex;
     flex-direction: column;
-    transition: transform 0.15s, box-shadow 0.15s;
-    cursor: pointer;
-}
-
-.file-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,0.3); }
-
-/* Thumbnail area — top of card */
-.file-thumb {
-    width: 100%;
-    height: 140px;
-    background: #1a1d27;
-    display: flex;
     align-items: center;
-    justify-content: center;
-    overflow: hidden;
-    position: relative;
+    text-align: center;
+    gap: 0.6rem;
+    transition: transform 0.15s;
 }
 
-.file-thumb img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
-}
+.file-card:hover { transform: translateY(-3px); }
 
-.file-thumb .thumb-icon {
-    font-size: 3rem;
-    user-select: none;
-}
-
-/* Play overlay for videos */
-.file-thumb .play-overlay {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 44px;
-    height: 44px;
-    background: rgba(0,0,0,0.6);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.2rem;
-    pointer-events: none;
-}
-
-/* Card info — bottom of card */
-.file-info {
-    padding: 0.75rem;
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 0.3rem;
-}
+.file-icon { font-size: 2.5rem; }
 
 .file-name {
-    font-size: 0.82rem;
+    font-size: 0.85rem;
     word-break: break-word;
     color: var(--text);
-    line-height: 1.3;
 }
 
-.file-size { font-size: 0.73rem; color: var(--muted); }
+.file-size { font-size: 0.75rem; color: var(--muted); }
 
-/* ── ACTION BUTTONS on card ── */
 .file-actions {
     display: flex;
-    gap: 0.4rem;
-    padding: 0 0.75rem 0.75rem;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+    flex-wrap: wrap;
+    justify-content: center;
 }
 
 .btn-view, .btn-download, .btn-delete {
-    flex: 1;
-    padding: 0.35rem 0;
+    padding: 0.35rem 0.8rem;
     border-radius: 6px;
     border: none;
     cursor: pointer;
-    font-size: 0.75rem;
-    font-weight: 500;
+    font-size: 0.8rem;
     transition: opacity 0.2s;
-    text-align: center;
 }
 
 .btn-view     { background: var(--accent);  color: white; }
@@ -253,17 +201,16 @@ main { padding: 2rem; max-width: 1100px; margin: 0 auto; }
 
 .btn-view:hover, .btn-download:hover, .btn-delete:hover { opacity: 0.8; }
 
-/* ── PREVIEW MODAL ── */
+/* ── PREVIEW MODAL — new, added on top of old UI ── */
 .modal-overlay {
     display: none;
     position: fixed;
     inset: 0;
-    background: rgba(0,0,0,0.85);
+    background: rgba(0,0,0,0.88);
     z-index: 999;
     align-items: center;
     justify-content: center;
     padding: 1rem;
-    backdrop-filter: blur(4px);
 }
 
 .modal-overlay.active { display: flex; }
@@ -320,7 +267,6 @@ main { padding: 2rem; max-width: 1100px; margin: 0 auto; }
     min-height: 200px;
 }
 
-/* Image preview */
 .modal-body img {
     max-width: 100%;
     max-height: 70vh;
@@ -328,7 +274,6 @@ main { padding: 2rem; max-width: 1100px; margin: 0 auto; }
     display: block;
 }
 
-/* Video preview */
 .modal-body video {
     max-width: 100%;
     max-height: 70vh;
@@ -336,7 +281,6 @@ main { padding: 2rem; max-width: 1100px; margin: 0 auto; }
     outline: none;
 }
 
-/* PDF preview */
 .modal-body iframe {
     width: 100%;
     height: 70vh;
@@ -344,7 +288,6 @@ main { padding: 2rem; max-width: 1100px; margin: 0 auto; }
     display: block;
 }
 
-/* Unsupported file type message */
 .modal-body .no-preview {
     text-align: center;
     padding: 3rem;
@@ -376,10 +319,7 @@ main { padding: 2rem; max-width: 1100px; margin: 0 auto; }
 
 .btn-download-modal:hover { opacity: 0.85; }
 
-/* ── RESPONSIVE ── */
 @media (max-width: 600px) {
     main { padding: 1rem; }
     .file-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
-    .modal-box { max-height: 95vh; }
-    header { padding: 0.75rem 1rem; }
 }
