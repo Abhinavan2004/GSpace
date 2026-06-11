@@ -17,77 +17,144 @@ function formatSize(bytes) {
     return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
 }
 
-function fileIcon(mime) {
-    if (!mime) return '📄';
-    if (mime.startsWith('image/')) return '🖼️';
-    if (mime === 'application/pdf') return '📕';
-    if (mime.startsWith('video/')) return '🎬';
-    return '📄';
-}
-
 function isImage(mime) { return mime && mime.startsWith('image/'); }
 function isVideo(mime) { return mime && mime.startsWith('video/'); }
 function isPdf(mime)   { return mime === 'application/pdf'; }
 function canPreview(mime) { return isImage(mime) || isVideo(mime) || isPdf(mime); }
+
+function fileIcon(mime) {
+    if (!mime) return '📄';
+    if (isImage(mime)) return '🖼️';
+    if (isPdf(mime))   return '📕';
+    if (isVideo(mime)) return '🎬';
+    return '📄';
+}
 
 function escapeHtml(str) {
     return String(str)
         .replace(/&/g,'&amp;').replace(/</g,'&lt;')
         .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
-function escapeAttr(str) {
-    return String(str).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+
+function authFetch(url, opts = {}) {
+    return fetch(url, {
+        ...opts,
+        headers: {
+            ...(opts.headers || {}),
+            Authorization: 'Bearer ' + token
+        }
+    });
 }
 
 // ─── Load files ───────────────────────────────────────────────
 let allFiles = [];
 
 async function loadFiles() {
-    const res = await fetch('/api/files', {
-        headers: { Authorization: 'Bearer ' + token }
-    });
-
-    if (res.status === 401) { logout(); return; }
-
-    allFiles = await res.json();
-    renderFiles(allFiles);
+    try {
+        const res = await authFetch('/api/files');
+        if (res.status === 401) { logout(); return; }
+        allFiles = await res.json();
+        renderFiles(allFiles);
+    } catch (e) {
+        document.getElementById('fileGrid').innerHTML =
+            '<p style="color:var(--danger)">Could not load files. Is server running?</p>';
+    }
 }
 
-// ─── Render — original card layout, just adds View button ─────
+// ─── Render cards ─────────────────────────────────────────────
 function renderFiles(files) {
     const grid = document.getElementById('fileGrid');
 
-    if (files.length === 0) {
+    if (!files.length) {
         grid.innerHTML = '<p style="color:var(--muted)">No files yet. Upload something!</p>';
         return;
     }
 
-    grid.innerHTML = files.map(f => `
-    <div class="file-card">
-      <div class="file-icon">${fileIcon(f.mimetype)}</div>
-      <div class="file-name">${escapeHtml(f.originalName)}</div>
-      <div class="file-size">${formatSize(f.size)}</div>
-      <div class="file-actions">
-        ${canPreview(f.mimetype)
-        ? `<button class="btn-view" onclick="openPreview('${escapeAttr(f.storedName)}','${escapeAttr(f.originalName)}','${escapeAttr(f.mimetype)}')">👁 View</button>`
-        : ''}
-        <button class="btn-download" onclick="downloadFile('${escapeAttr(f.storedName)}', '${escapeAttr(f.originalName)}')">⬇ Download</button>
-        <button class="btn-delete" onclick="deleteFile(${f.id})">🗑</button>
-      </div>
-    </div>
-  `).join('');
+    grid.innerHTML = files.map(f => {
+        // Top preview area
+        let previewHtml;
+        if (isImage(f.mimetype)) {
+            // Placeholder first; real thumbnail loaded below via loadThumbnails()
+            previewHtml = `<div class="file-preview">
+        <img data-stored="${escapeHtml(f.storedName)}" src="" alt="${escapeHtml(f.originalName)}"/>
+      </div>`;
+        } else if (isVideo(f.mimetype)) {
+            previewHtml = `<div class="file-preview">
+        <span class="file-icon-large">🎬</span>
+        <span class="play-badge">▶</span>
+      </div>`;
+        } else {
+            previewHtml = `<div class="file-preview">
+        <span class="file-icon-large">${fileIcon(f.mimetype)}</span>
+      </div>`;
+        }
+
+        const preview = canPreview(f.mimetype);
+        // data attributes used by the card click handler
+        const cardAttrs = preview
+            ? `data-stored="${escapeHtml(f.storedName)}" data-name="${escapeHtml(f.originalName)}" data-mime="${escapeHtml(f.mimetype || '')}"`
+            : '';
+
+        return `
+      <div class="file-card" ${cardAttrs} onclick="handleCardClick(event, this)">
+        ${previewHtml}
+        <div class="file-info">
+          <div class="file-name">${escapeHtml(f.originalName)}</div>
+          <div class="file-size">${formatSize(f.size)}</div>
+        </div>
+        <div class="file-actions">
+          <button class="btn-download"
+            onclick="event.stopPropagation(); downloadFile('${escapeHtml(f.storedName)}','${escapeHtml(f.originalName)}')">
+            ⬇ Download
+          </button>
+          <button class="btn-delete"
+            onclick="event.stopPropagation(); deleteFile(${f.id})">
+            🗑
+          </button>
+        </div>
+      </div>`;
+    }).join('');
+
+    loadThumbnails();
 }
 
+// Card click → open preview if file supports it
+function handleCardClick(event, card) {
+    // Ignore if a button inside was clicked (stopPropagation handles it)
+    const stored = card.getAttribute('data-stored');
+    const name   = card.getAttribute('data-name');
+    const mime   = card.getAttribute('data-mime');
+    if (stored && name) openPreview(stored, name, mime);
+}
+
+// ─── Load image thumbnails ─────────────────────────────────────
+// Loads images in batches so we don't hit server with 50 requests at once
+async function loadThumbnails() {
+    const imgs = Array.from(document.querySelectorAll('.file-preview img[data-stored]'));
+    // Process 4 at a time
+    for (let i = 0; i < imgs.length; i += 4) {
+        const batch = imgs.slice(i, i + 4);
+        await Promise.all(batch.map(async img => {
+            try {
+                const res = await authFetch('/api/files/download/' + encodeURIComponent(img.dataset.stored));
+                if (res.ok) {
+                    const blob = await res.blob();
+                    img.src = URL.createObjectURL(blob);
+                }
+            } catch (e) { /* silent fail — icon stays */ }
+        }));
+    }
+}
+
+// ─── Search ───────────────────────────────────────────────────
 function filterFiles() {
     const q = document.getElementById('searchInput').value.toLowerCase();
     renderFiles(allFiles.filter(f => f.originalName.toLowerCase().includes(q)));
 }
 
-// ─── Download (unchanged) ─────────────────────────────────────
+// ─── Download ─────────────────────────────────────────────────
 async function downloadFile(storedName, originalName) {
-    const res = await fetch('/api/files/download/' + encodeURIComponent(storedName), {
-        headers: { Authorization: 'Bearer ' + token }
-    });
+    const res = await authFetch('/api/files/download/' + encodeURIComponent(storedName));
     const blob = await res.blob();
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -97,31 +164,27 @@ async function downloadFile(storedName, originalName) {
     URL.revokeObjectURL(url);
 }
 
-// ─── Delete (unchanged) ───────────────────────────────────────
+// ─── Delete ───────────────────────────────────────────────────
 async function deleteFile(id) {
-    if (!confirm('Delete this file?')) return;
-    await fetch('/api/files/' + id, {
-        method: 'DELETE',
-        headers: { Authorization: 'Bearer ' + token }
-    });
-    loadFiles();
+    if (!confirm('Delete this file? This cannot be undone.')) return;
+    const res = await authFetch('/api/files/' + id, { method: 'DELETE' });
+    if (res.ok) loadFiles();
+    else alert('Delete failed. Please try again.');
 }
 
-// ─── Preview Modal (new) ──────────────────────────────────────
+// ─── Preview Modal ────────────────────────────────────────────
 async function openPreview(storedName, originalName, mimetype) {
     document.getElementById('previewTitle').textContent = originalName;
     document.getElementById('modalDownloadBtn').onclick =
         () => downloadFile(storedName, originalName);
 
     const body = document.getElementById('previewBody');
-    body.innerHTML = '<p style="color:var(--muted);padding:2rem">Loading...</p>';
+    body.innerHTML = '<p style="color:var(--muted);padding:2rem;text-align:center">Loading...</p>';
     document.getElementById('previewModal').classList.add('active');
     document.body.style.overflow = 'hidden';
 
     try {
-        const res = await fetch('/api/files/download/' + encodeURIComponent(storedName), {
-            headers: { Authorization: 'Bearer ' + token }
-        });
+        const res = await authFetch('/api/files/download/' + encodeURIComponent(storedName));
         if (!res.ok) throw new Error('fetch failed');
         const blob = await res.blob();
         const url  = URL.createObjectURL(blob);
@@ -129,21 +192,22 @@ async function openPreview(storedName, originalName, mimetype) {
         if (isImage(mimetype)) {
             body.innerHTML = `<img src="${url}" alt="${escapeHtml(originalName)}"/>`;
         } else if (isVideo(mimetype)) {
-            body.innerHTML =
-                `<video controls autoplay><source src="${url}" type="${escapeHtml(mimetype)}">
-         Your browser cannot play this video.</video>`;
+            body.innerHTML = `<video controls autoplay>
+        <source src="${url}" type="${escapeHtml(mimetype)}">
+        Your browser cannot play this video.
+      </video>`;
         } else if (isPdf(mimetype)) {
             body.innerHTML = `<iframe src="${url}" title="${escapeHtml(originalName)}"></iframe>`;
         } else {
             body.innerHTML = `<div class="no-preview">
-        <div class="big-icon">📄</div>
-        <p>No preview available.<br>Use Download to open this file.</p>
+        <span class="big-icon">📄</span>
+        <p>No preview available for this file type.<br>Use the Download button to open it.</p>
       </div>`;
         }
     } catch (e) {
         body.innerHTML = `<div class="no-preview">
-      <div class="big-icon">⚠️</div>
-      <p>Could not load preview. Try downloading instead.</p>
+      <span class="big-icon">⚠️</span>
+      <p>Could not load preview.<br>Try downloading instead.</p>
     </div>`;
     }
 }
@@ -154,6 +218,10 @@ function closeModal() {
     const body = document.getElementById('previewBody');
     const video = body.querySelector('video');
     if (video) { video.pause(); video.src = ''; }
+    const img = body.querySelector('img');
+    if (img && img.src.startsWith('blob:')) URL.revokeObjectURL(img.src);
+    const iframe = body.querySelector('iframe');
+    if (iframe && iframe.src.startsWith('blob:')) URL.revokeObjectURL(iframe.src);
     body.innerHTML = '';
 }
 
@@ -165,7 +233,7 @@ document.addEventListener('keydown', e => {
     if (e.key === 'Escape') closeModal();
 });
 
-// ─── Upload (unchanged) ───────────────────────────────────────
+// ─── Upload ───────────────────────────────────────────────────
 const fileInput    = document.getElementById('fileInput');
 const uploadStatus = document.getElementById('uploadStatus');
 
@@ -173,31 +241,32 @@ fileInput.addEventListener('change', () => uploadFiles(fileInput.files));
 
 async function uploadFiles(files) {
     if (!files.length) return;
-    uploadStatus.textContent = `Uploading ${files.length} file(s)...`;
+    const total = files.length;
 
-    for (const file of files) {
+    for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        uploadStatus.textContent = `Uploading ${file.name} (${i + 1}/${total})...`;
         const formData = new FormData();
         formData.append('file', file);
 
-        const res = await fetch('/api/files/upload', {
+        const res = await authFetch('/api/files/upload', {
             method: 'POST',
-            headers: { Authorization: 'Bearer ' + token },
             body: formData
         });
 
         if (!res.ok) {
-            uploadStatus.textContent = '❌ Failed to upload: ' + file.name;
+            uploadStatus.textContent = '❌ Failed: ' + file.name;
             return;
         }
     }
 
-    uploadStatus.textContent = '✅ Upload complete!';
+    uploadStatus.textContent = `✅ ${total} file(s) uploaded!`;
     setTimeout(() => uploadStatus.textContent = '', 3000);
     fileInput.value = '';
     loadFiles();
 }
 
-// ─── Drag & Drop (unchanged) ──────────────────────────────────
+// ─── Drag & Drop ──────────────────────────────────────────────
 const dropZone = document.getElementById('dropZone');
 
 dropZone.addEventListener('dragover', e => {

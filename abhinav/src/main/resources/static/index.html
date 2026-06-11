@@ -1,33 +1,69 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
+    <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>MyDrive — Login</title>
     <link rel="stylesheet" href="/style.css"/>
 </head>
 <body class="auth-page">
+
 <div class="auth-box">
-    <h1>🗄️ MyDrive</h1>
-    <p>Your personal cloud</p>
-    <input type="text" id="username" placeholder="Username" autocomplete="username"/>
-    <input type="password" id="password" placeholder="Password" autocomplete="current-password"/>
-    <button onclick="login()">Login</button>
-    <p id="error" class="error"></p>
+    <div class="auth-logo">🗄️</div>
+    <h1>MyDrive</h1>
+    <p class="auth-sub">Your personal cloud storage</p>
+
+    <!-- Tabs -->
+    <div class="auth-tabs">
+        <button class="auth-tab active" id="tabLogin" onclick="switchTab('login')">Login</button>
+        <button class="auth-tab" id="tabSignup" onclick="switchTab('signup')">Sign Up</button>
+    </div>
+
+    <!-- Login Form -->
+    <div id="formLogin">
+        <input type="text" id="loginUsername" placeholder="Username" autocomplete="username"/>
+        <input type="password" id="loginPassword" placeholder="Password" autocomplete="current-password"/>
+        <button onclick="login()">Login</button>
+        <p id="loginError" class="auth-error"></p>
+    </div>
+
+    <!-- Signup Form -->
+    <div id="formSignup" style="display:none">
+        <input type="text" id="signupUsername" placeholder="Choose a username"/>
+        <input type="password" id="signupPassword" placeholder="Choose a password (min 6 chars)"/>
+        <input type="password" id="signupConfirm" placeholder="Confirm password"/>
+        <button onclick="signup()">Create Account</button>
+        <p id="signupError" class="auth-error"></p>
+        <p id="signupSuccess" class="auth-success"></p>
+    </div>
 </div>
+
 <script>
+    // Already logged in → go to dashboard
     if (localStorage.getItem('token')) window.location.href = '/dashboard.html';
 
-    async function login() {
-        const username = document.getElementById('username').value.trim();
-        const password = document.getElementById('password').value;
-        const errorEl = document.getElementById('error');
-        errorEl.textContent = '';
+    function switchTab(tab) {
+        const isLogin = tab === 'login';
+        document.getElementById('formLogin').style.display  = isLogin ? 'block' : 'none';
+        document.getElementById('formSignup').style.display = isLogin ? 'none'  : 'block';
+        document.getElementById('tabLogin').classList.toggle('active',  isLogin);
+        document.getElementById('tabSignup').classList.toggle('active', !isLogin);
+        clearMessages();
+    }
 
-        if (!username || !password) {
-            errorEl.textContent = 'Please fill in both fields.';
-            return;
-        }
+    function clearMessages() {
+        ['loginError','signupError','signupSuccess'].forEach(id => {
+            document.getElementById(id).textContent = '';
+        });
+    }
+
+    async function login() {
+        const username = document.getElementById('loginUsername').value.trim();
+        const password = document.getElementById('loginPassword').value;
+        const err = document.getElementById('loginError');
+        err.textContent = '';
+
+        if (!username || !password) { err.textContent = 'Please fill in all fields.'; return; }
 
         try {
             const res = await fetch('/api/auth/login', {
@@ -37,7 +73,7 @@
             });
 
             if (!res.ok) {
-                errorEl.textContent = 'Invalid username or password.';
+                err.textContent = 'Invalid username or password.';
                 return;
             }
 
@@ -46,13 +82,63 @@
             localStorage.setItem('username', data.username);
             window.location.href = '/dashboard.html';
         } catch (e) {
-            errorEl.textContent = 'Server error. Try again.';
+            err.textContent = 'Server error. Please try again.';
         }
     }
 
-    // Allow pressing Enter to login
+    async function signup() {
+        const username = document.getElementById('signupUsername').value.trim();
+        const password = document.getElementById('signupPassword').value;
+        const confirm  = document.getElementById('signupConfirm').value;
+        const err      = document.getElementById('signupError');
+        const ok       = document.getElementById('signupSuccess');
+        err.textContent = '';
+        ok.textContent  = '';
+
+        if (!username || !password || !confirm) {
+            err.textContent = 'Please fill in all fields.'; return;
+        }
+        if (username.length < 3) {
+            err.textContent = 'Username must be at least 3 characters.'; return;
+        }
+        if (password.length < 6) {
+            err.textContent = 'Password must be at least 6 characters.'; return;
+        }
+        if (password !== confirm) {
+            err.textContent = 'Passwords do not match.'; return;
+        }
+
+        try {
+            const res = await fetch('/api/auth/signup', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            });
+
+            const msg = await res.text();
+
+            if (!res.ok) {
+                err.textContent = msg;
+                return;
+            }
+
+            ok.textContent = '✅ Account created! You can now login.';
+            document.getElementById('signupUsername').value = '';
+            document.getElementById('signupPassword').value = '';
+            document.getElementById('signupConfirm').value  = '';
+
+            // Auto switch to login tab after 1.5s
+            setTimeout(() => switchTab('login'), 1500);
+        } catch (e) {
+            err.textContent = 'Server error. Please try again.';
+        }
+    }
+
+    // Enter key support
     document.addEventListener('keydown', e => {
-        if (e.key === 'Enter') login();
+        if (e.key !== 'Enter') return;
+        const loginVisible = document.getElementById('formLogin').style.display !== 'none';
+        if (loginVisible) login(); else signup();
     });
 </script>
 </body>

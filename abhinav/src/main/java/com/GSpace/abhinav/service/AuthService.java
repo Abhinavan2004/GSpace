@@ -28,32 +28,25 @@ public class AuthService {
         return new LoginResponse(token, request.getUsername());
     }
 
-    public void register(LoginRequest request) {
-        if (request.getUsername() == null || request.getUsername().trim().isEmpty()) {
-            throw new IllegalArgumentException("Username cannot be empty");
+    public void createUserIfNotExists(String username, String password) {
+        // Validate username
+        if (username == null || username.trim().length() < 3) {
+            throw new RuntimeException("Username must be at least 3 characters.");
         }
-        if (request.getPassword() == null || request.getPassword().length() < 4) {
-            throw new IllegalArgumentException("Password must be at least 4 characters");
+        // Validate password
+        if (password == null || password.length() < 6) {
+            throw new RuntimeException("Password must be at least 6 characters.");
         }
-        if (userRepository.existsByUsername(request.getUsername().trim())) {
-            throw new IllegalArgumentException("Username is already taken");
+        // Check if username already taken
+        if (userRepository.existsByUsername(username.trim())) {
+            throw new RuntimeException("Username already taken. Please choose another.");
         }
+
         User user = User.builder()
-                .username(request.getUsername().trim())
-                .password(passwordEncoder.encode(request.getPassword()))
+                .username(username.trim())
+                .password(passwordEncoder.encode(password))
                 .build();
         userRepository.save(user);
-    }
-
-    // Call this once to create your admin user
-    public void createUserIfNotExists(String username, String password) {
-        if (!userRepository.existsByUsername(username)) {
-            User user = User.builder()
-                    .username(username)
-                    .password(passwordEncoder.encode(password))
-                    .build();
-            userRepository.save(user);
-            System.out.println("✅ Admin user created: " + username);
-        }
+        System.out.println("✅ New user created: " + username);
     }
 }

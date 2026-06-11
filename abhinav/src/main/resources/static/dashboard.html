@@ -17,7 +17,7 @@
 </header>
 
 <main>
-    <!-- Upload Section -->
+    <!-- Upload -->
     <section class="upload-section">
         <div class="drop-zone" id="dropZone">
             <p>📂 Drag & Drop files here</p>
@@ -25,13 +25,13 @@
             <label class="btn-primary">
                 Browse Files
                 <input type="file" id="fileInput" multiple hidden
-                       accept=".jpg,.jpeg,.png,.pdf,.mp4,.mov,.avi"/>
+                       accept=".jpg,.jpeg,.png,.pdf,.mp4,.mov,.avi,.mkv,.webm"/>
             </label>
         </div>
         <div id="uploadStatus"></div>
     </section>
 
-    <!-- File List -->
+    <!-- Files -->
     <section class="files-section">
         <h2>Your Files</h2>
         <div class="toolbar">
@@ -43,7 +43,7 @@
     </section>
 </main>
 
-<!-- Preview Modal (new) -->
+<!-- Preview Modal -->
 <div id="previewModal" class="modal-overlay" onclick="closePreview(event)">
     <div class="modal-box">
         <div class="modal-header">

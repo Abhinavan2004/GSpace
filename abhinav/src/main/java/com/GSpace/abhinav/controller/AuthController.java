@@ -15,17 +15,21 @@ public class AuthController {
     private final AuthService authService;
 
     @PostMapping("/login")
-    public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest request) {
-        return ResponseEntity.ok(authService.login(request));
+    public ResponseEntity<?> login(@RequestBody LoginRequest request) {
+        try {
+            return ResponseEntity.ok(authService.login(request));
+        } catch (Exception e) {
+            return ResponseEntity.status(401).body("Invalid username or password.");
+        }
     }
 
-    @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody LoginRequest request) {
+    @PostMapping("/signup")
+    public ResponseEntity<?> signup(@RequestBody LoginRequest request) {
         try {
-            authService.register(request);
-            return ResponseEntity.ok(java.util.Map.of("message", "User registered successfully"));
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(java.util.Map.of("error", e.getMessage()));
+            authService.createUserIfNotExists(request.getUsername(), request.getPassword());
+            return ResponseEntity.ok("Account created successfully.");
+        } catch (Exception e) {
+            return ResponseEntity.status(400).body(e.getMessage());
         }
     }
 }
