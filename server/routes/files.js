@@ -3,13 +3,12 @@ const router = express.Router();
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-const { v4: uuidv4 } = require('crypto'); // or custom uuid fallback
 const db = require('../db');
 const { authenticateToken } = require('../middleware/auth');
 
 const uploadDir = path.resolve(__dirname, '../../uploads');
 if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: recursive = true });
+  fs.mkdirSync(uploadDir, { recursive: true });
 }
 
 // Multer setup
@@ -30,35 +29,7 @@ const upload = multer({
 
 // Helper to get user record
 async function getUserByUsername(username) {
-  if (typeof db.prepare === 'function' && typeof db.prepare('').get === 'function' && db.prepare('').get.constructor.name === 'AsyncFunction') {
-    return await db.prepare('SELECT * FROM users WHERE username = ?').get(username);
-  }
-  return db.prepare('SELECT * FROM users WHERE username = ?').get(username);
-}
-
-// Helper query function wrapper
-async function runQuery(sql, params) {
-  const stmt = db.prepare(sql);
-  if (stmt.run && stmt.run.constructor.name === 'AsyncFunction') {
-    return await stmt.run(...params);
-  }
-  return stmt.run(...params);
-}
-
-async function getQuery(sql, params) {
-  const stmt = db.prepare(sql);
-  if (stmt.get && stmt.get.constructor.name === 'AsyncFunction') {
-    return await stmt.get(...params);
-  }
-  return stmt.get(...params);
-}
-
-async function allQuery(sql, params) {
-  const stmt = db.prepare(sql);
-  if (stmt.all && stmt.all.constructor.name === 'AsyncFunction') {
-    return await stmt.all(...params);
-  }
-  return stmt.all(...params);
+  return await db.get('SELECT * FROM users WHERE username = ?', [username]);
 }
 
 // POST /api/files/upload
@@ -79,13 +50,13 @@ router.post('/upload', authenticateToken, upload.single('file'), async (req, res
     const size = req.file.size;
     const createdAt = new Date().toISOString();
 
-    const result = await runQuery(
+    const result = await db.run(
       `INSERT INTO files (original_name, stored_name, mimetype, size, uploaded_by, created_at)
        VALUES (?, ?, ?, ?, ?, ?)`,
       [originalName, storedName, mimetype, size, user.id, createdAt]
     );
 
-    const insertedId = result.lastInsertRowid || result.id;
+    const insertedId = result.lastInsertRowid;
 
     res.json({
       id: insertedId,
@@ -109,7 +80,7 @@ router.get('/', authenticateToken, async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    const rows = await allQuery(
+    const rows = await db.all(
       `SELECT id, original_name as originalName, stored_name as storedName, mimetype, size, created_at as createdAt 
        FROM files 
        WHERE uploaded_by = ? 
@@ -135,7 +106,7 @@ router.get('/download/:storedName', async (req, res) => {
     }
 
     // Try to lookup original filename
-    const fileRecord = await getQuery('SELECT original_name, mimetype FROM files WHERE stored_name = ?', [storedName]);
+    const fileRecord = await db.get('SELECT original_name, mimetype FROM files WHERE stored_name = ?', [storedName]);
     const downloadName = fileRecord ? fileRecord.original_name : storedName;
     const mime = fileRecord ? fileRecord.mimetype : 'application/octet-stream';
 
@@ -160,7 +131,7 @@ router.delete('/:id', authenticateToken, async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    const fileRecord = await getQuery('SELECT * FROM files WHERE id = ?', [fileId]);
+    const fileRecord = await db.get('SELECT * FROM files WHERE id = ?', [fileId]);
 
     if (!fileRecord) {
       return res.status(404).json({ message: 'File not found' });
@@ -180,7 +151,7 @@ router.delete('/:id', authenticateToken, async (req, res) => {
       }
     }
 
-    await runQuery('DELETE FROM files WHERE id = ?', [fileId]);
+    await db.run('DELETE FROM files WHERE id = ?', [fileId]);
     res.send('File deleted');
   } catch (err) {
     console.error('Delete error:', err);
@@ -194,7 +165,7 @@ router.get('/stats', authenticateToken, async (req, res) => {
     const user = await getUserByUsername(req.user.username);
     if (!user) return res.status(404).json({ message: 'User not found' });
 
-    const stats = await getQuery(
+    const stats = await db.get(
       `SELECT COUNT(*) as totalFiles, COALESCE(SUM(size), 0) as totalBytes FROM files WHERE uploaded_by = ?`,
       [user.id]
     );

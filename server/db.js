@@ -14,46 +14,61 @@ if (!fs.existsSync(rootDbPath) && fs.existsSync(springBootDbPath)) {
 const targetDbPath = fs.existsSync(rootDbPath) ? rootDbPath : (fs.existsSync(springBootDbPath) ? springBootDbPath : rootDbPath);
 
 let db;
+let isBetterSqlite = false;
+
 try {
   const Database = require('better-sqlite3');
   db = new Database(targetDbPath, { verbose: null });
+  isBetterSqlite = true;
   console.log(`✅ Connected to SQLite database (better-sqlite3) at ${targetDbPath}`);
 } catch (err) {
   console.log('Falling back to sqlite3 standard package...');
   const sqlite3 = require('sqlite3').verbose();
-  const rawDb = new sqlite3.Database(targetDbPath);
-  
-  db = {
-    prepare: (sql) => {
-      return {
-        run: (...params) => new Promise((resolve, reject) => {
-          rawDb.run(sql, params, function (err) {
-            if (err) reject(err);
-            else resolve({ lastInsertRowid: this.lastID, changes: this.changes });
-          });
-        }),
-        get: (...params) => new Promise((resolve, reject) => {
-          rawDb.get(sql, params, (err, row) => {
-            if (err) reject(err);
-            else resolve(row);
-          });
-        }),
-        all: (...params) => new Promise((resolve, reject) => {
-          rawDb.all(sql, params, (err, rows) => {
-            if (err) reject(err);
-            else resolve(rows);
-          });
-        })
-      };
-    },
-    exec: (sql) => new Promise((resolve, reject) => {
-      rawDb.exec(sql, (err) => {
-        if (err) reject(err);
-        else resolve();
-      });
-    })
-  };
+  db = new sqlite3.Database(targetDbPath);
 }
+
+// Unified db helper interface
+const query = {
+  get: (sql, params = []) => {
+    if (isBetterSqlite) {
+      return db.prepare(sql).get(...params);
+    }
+    return new Promise((resolve, reject) => {
+      db.get(sql, params, (err, row) => (err ? reject(err) : resolve(row)));
+    });
+  },
+
+  all: (sql, params = []) => {
+    if (isBetterSqlite) {
+      return db.prepare(sql).all(...params);
+    }
+    return new Promise((resolve, reject) => {
+      db.all(sql, params, (err, rows) => (err ? reject(err) : resolve(rows)));
+    });
+  },
+
+  run: (sql, params = []) => {
+    if (isBetterSqlite) {
+      const info = db.prepare(sql).run(...params);
+      return { lastInsertRowid: info.lastInsertRowid, changes: info.changes };
+    }
+    return new Promise((resolve, reject) => {
+      db.run(sql, params, function (err) {
+        if (err) reject(err);
+        else resolve({ lastInsertRowid: this.lastID, changes: this.changes });
+      });
+    });
+  },
+
+  exec: (sql) => {
+    if (isBetterSqlite) {
+      return db.exec(sql);
+    }
+    return new Promise((resolve, reject) => {
+      db.exec(sql, (err) => (err ? reject(err) : resolve()));
+    });
+  }
+};
 
 // Initialize tables if they don't exist
 function initDb() {
@@ -79,15 +94,10 @@ function initDb() {
     );
   `;
 
-  if (typeof db.exec === 'function') {
-    db.exec(createUsersTable);
-    db.exec(createFilesTable);
-  } else {
-    db.prepare(createUsersTable).run();
-    db.prepare(createFilesTable).run();
-  }
+  query.exec(createUsersTable);
+  query.exec(createFilesTable);
 }
 
 initDb();
 
-module.exports = db;
+module.exports = query;

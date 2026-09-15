@@ -20,14 +20,7 @@ router.post('/signup', async (req, res) => {
     const trimmedUsername = username.trim();
 
     // Check if user exists
-    let existingUser;
-    if (typeof db.prepare === 'function' && typeof db.prepare('').get === 'function') {
-      const stmt = db.prepare('SELECT * FROM users WHERE username = ?');
-      existingUser = await stmt.get(trimmedUsername);
-    } else {
-      existingUser = db.prepare('SELECT * FROM users WHERE username = ?').get(trimmedUsername);
-    }
-
+    const existingUser = await db.get('SELECT * FROM users WHERE username = ?', [trimmedUsername]);
     if (existingUser) {
       return res.status(400).send('Username already taken. Please choose another.');
     }
@@ -36,14 +29,14 @@ router.post('/signup', async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
     const now = new Date().toISOString();
 
-    if (typeof db.prepare === 'function' && typeof db.prepare('').run === 'function' && db.prepare('').run.constructor.name === 'AsyncFunction') {
-      await db.prepare('INSERT INTO users (username, password, created_at) VALUES (?, ?, ?)').run(trimmedUsername, hashedPassword, now);
-    } else {
-      db.prepare('INSERT INTO users (username, password, created_at) VALUES (?, ?, ?)').run(trimmedUsername, hashedPassword, now);
-    }
+    await db.run('INSERT INTO users (username, password, created_at) VALUES (?, ?, ?)', [
+      trimmedUsername,
+      hashedPassword,
+      now
+    ]);
 
     console.log(`✅ New user created: ${trimmedUsername}`);
-    return res.ok ? res.ok('Account created successfully.') : res.status(200).send('Account created successfully.');
+    return res.status(200).send('Account created successfully.');
   } catch (err) {
     console.error('Signup error:', err);
     return res.status(400).send(err.message || 'Error creating account');
@@ -61,13 +54,7 @@ router.post('/login', async (req, res) => {
 
     const trimmedUsername = username.trim();
 
-    let user;
-    if (typeof db.prepare === 'function' && typeof db.prepare('').get === 'function' && db.prepare('').get.constructor.name === 'AsyncFunction') {
-      user = await db.prepare('SELECT * FROM users WHERE username = ?').get(trimmedUsername);
-    } else {
-      user = db.prepare('SELECT * FROM users WHERE username = ?').get(trimmedUsername);
-    }
-
+    const user = await db.get('SELECT * FROM users WHERE username = ?', [trimmedUsername]);
     if (!user) {
       return res.status(401).send('Invalid username or password.');
     }
@@ -93,13 +80,7 @@ router.post('/login', async (req, res) => {
 // GET /api/auth/me
 router.get('/me', authenticateToken, async (req, res) => {
   try {
-    let user;
-    if (typeof db.prepare === 'function' && typeof db.prepare('').get === 'function' && db.prepare('').get.constructor.name === 'AsyncFunction') {
-      user = await db.prepare('SELECT id, username, created_at FROM users WHERE username = ?').get(req.user.username);
-    } else {
-      user = db.prepare('SELECT id, username, created_at FROM users WHERE username = ?').get(req.user.username);
-    }
-
+    const user = await db.get('SELECT id, username, created_at FROM users WHERE username = ?', [req.user.username]);
     if (!user) return res.status(404).json({ message: 'User not found' });
     res.json(user);
   } catch (err) {
