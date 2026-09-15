@@ -1,0 +1,27 @@
+{
+  "name": "gspace-mern-sqlite",
+  "version": "2.0.0",
+  "description": "GSpace - Personal Cloud Storage built with Node.js, Express, React, and SQLite",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node server/index.js",
+    "server": "node server/index.js",
+    "client": "npm --prefix client run dev",
+    "build": "npm --prefix client run build",
+    "dev": "concurrently \"npm run server\" \"npm run client\""
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "keywords": [
+    "gspace",
+    "mern",
+    "sqlite",
+    "express",
+    "react",
+    "nodejs",
+    "cloud-storage"
+  ],
+  "author": "Abhinav",
+  "license": "ISC"
+}
