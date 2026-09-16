@@ -1,17 +1,8 @@
 const path = require('path');
 const fs = require('fs');
 
-// Path to SQLite database
-const rootDbPath = path.resolve(__dirname, '../mydrive.db');
-const springBootDbPath = path.resolve(__dirname, '../abhinav/mydrive.db');
-
-// Ensure database file exists from Spring Boot if available
-if (!fs.existsSync(rootDbPath) && fs.existsSync(springBootDbPath)) {
-  fs.copyFileSync(springBootDbPath, rootDbPath);
-  console.log('✅ Copied existing SQLite database from abhinav/mydrive.db to mydrive.db');
-}
-
-const targetDbPath = fs.existsSync(rootDbPath) ? rootDbPath : (fs.existsSync(springBootDbPath) ? springBootDbPath : rootDbPath);
+// Path to SQLite database in project root
+const targetDbPath = path.resolve(__dirname, '../mydrive.db');
 
 let db;
 let isBetterSqlite = false;
