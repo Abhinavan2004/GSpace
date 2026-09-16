@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const fs = require('fs');
 require('dotenv').config();
 
 const authRoutes = require('./routes/auth');
@@ -23,16 +24,20 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', service: 'GSpace Node Express SQLite Backend' });
 });
 
-// Serve frontend build static files if client build exists
-const clientBuildPath = path.resolve(__dirname, '../client/dist');
-app.use(express.static(clientBuildPath));
+// Configure Express to serve the built React app (client/dist or client/build)
+const clientDistPath = path.resolve(__dirname, '../client/dist');
+const clientBuildPath = path.resolve(__dirname, '../client/build');
+const staticPath = fs.existsSync(clientDistPath) ? clientDistPath : clientBuildPath;
 
+app.use(express.static(staticPath));
+
+// Fallback route serving index.html for any unmatched non-API request (React SPA Routing)
 app.use((req, res, next) => {
   if (req.path.startsWith('/api')) {
     return next();
   }
-  const indexPath = path.join(clientBuildPath, 'index.html');
-  if (require('fs').existsSync(indexPath)) {
+  const indexPath = path.join(staticPath, 'index.html');
+  if (fs.existsSync(indexPath)) {
     return res.sendFile(indexPath);
   }
   res.status(200).send('GSpace API Server Running on port ' + PORT);
